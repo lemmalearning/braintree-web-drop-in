@@ -14,6 +14,7 @@ module.exports = {
   fieldEmptyForPostalCode: 'Please fill out a postal code.',
   fieldInvalidForCvv: 'This security code is not valid.',
   fieldInvalidForExpirationDate: 'This expiration date is not valid.',
+  fieldInvalidForCardholderName: 'This cardholder name is not valid.',
   fieldInvalidForNumber: 'This card number is not valid.',
   fieldInvalidForPostalCode: 'This postal code is not valid.',
   genericError: 'Something went wrong on our end.',

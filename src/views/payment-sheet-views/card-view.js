@@ -12,6 +12,21 @@ var Promise = require('../../lib/promise');
 
 var cardIconHTML = fs.readFileSync(__dirname + '/../../html/card-icons.html', 'utf8');
 
+var HOSTED_FIELDS_INPUTS = [
+  'number',
+  'expirationDate',
+  'cvv',
+  'postalCode'
+];
+var RAW_TEXT_INPUTS = [
+  'cardholderName'
+];
+var MAX_TEXT_INPUT_LENGTH = 255; // max string length in Braintree gateway for string properties
+
+function isValidStringLength(string) {
+  return string.length > 0 && string.length <= MAX_TEXT_INPUT_LENGTH;
+}
+
 function CardView() {
   BaseView.apply(this, arguments);
 }
@@ -22,7 +37,6 @@ CardView.ID = CardView.prototype.ID = constants.paymentOptionIDs.card;
 
 CardView.prototype.initialize = function () {
   var cvvFieldGroup, postalCodeFieldGroup;
-  var cardholderNameField = this.getElementById('cardholder-name-field-group');
   var cardIcons = this.getElementById('card-view-icons');
   var hfOptions = this._generateHostedFieldsOptions();
 
@@ -31,13 +45,18 @@ CardView.prototype.initialize = function () {
 
   this.hasCVV = hfOptions.fields.cvv;
   this.hasCardholderName = Boolean(this.model.merchantConfiguration.card && this.model.merchantConfiguration.card.cardholderName);
-  this.cardholderNameInput = cardholderNameField.querySelector('input');
   this.cardNumberIcon = this.getElementById('card-number-icon');
   this.cardNumberIconSvg = this.getElementById('card-number-icon-svg');
   this.cvvIcon = this.getElementById('cvv-icon');
   this.cvvIconSvg = this.getElementById('cvv-icon-svg');
   this.cvvLabelDescriptor = this.getElementById('cvv-label-descriptor');
   this.fieldErrors = {};
+
+  this.rawFields = {};
+
+  if (this.model.merchantConfiguration.card && this.model.merchantConfiguration.card.cardholderName) {
+    this.rawFields.cardholderName = this.getElementById('cardholder-name-field-group');
+  }
 
   if (!this.hasCVV) {
     cvvFieldGroup = this.getElementById('cvv-field-group');
@@ -49,10 +68,10 @@ CardView.prototype.initialize = function () {
     postalCodeFieldGroup.parentNode.removeChild(postalCodeFieldGroup);
   }
 
-  if (this.hasCardholderName) {
-    this._setupCardholderName(cardholderNameField);
+  if (Object.keys(this.rawFields).length > 0) {
+    this._setupRawInputs();
   } else {
-    cardholderNameField.parentNode.removeChild(cardholderNameField);
+    this._removeRawInputs();
   }
 
   this.model.asyncDependencyStarting();
@@ -74,38 +93,52 @@ CardView.prototype.initialize = function () {
   }.bind(this));
 };
 
-CardView.prototype._setupCardholderName = function (cardholderNameField) {
-  var cardholderNameOptions = this.model.merchantConfiguration.card && this.model.merchantConfiguration.card.cardholderName;
-  var cardholderNameContainer = cardholderNameField.querySelector('.braintree-form__hosted-field');
+CardView.prototype._removeRawInputs = function () {
+  RAW_TEXT_INPUTS.forEach(function (input) {
+    var field = this.getElementById(camelCaseToKebabCase(input) + '-field-group');
 
-  this.cardholderNameInput.addEventListener('keyup', function () {
-    var hasContent = this.cardholderNameInput.value.length > 0;
+    field.parentNode.removeChild(field);
+  }.bind(this));
+};
 
-    classlist.toggle(cardholderNameContainer, 'braintree-form__field--valid', hasContent);
+CardView.prototype._setupRawInputs = function () {
+  RAW_TEXT_INPUTS.forEach(function (field) {
+    var fieldGroup = this.getElementById(camelCaseToKebabCase(field) + '-field-group');
+    var options = this.model.merchantConfiguration.card && this.model.merchantConfiguration.card[field];
+    var container = fieldGroup.querySelector('.braintree-form__hosted-field');
+    var input = fieldGroup.querySelector('input');
 
-    if (!cardholderNameOptions.required) {
-      return;
-    }
+    input.addEventListener('keyup', function () {
+      var validLength = isValidStringLength(input.value);
 
-    if (hasContent) {
-      classlist.remove(cardholderNameField, 'braintree-form__field-group--has-error');
-    }
+      classlist.toggle(container, 'braintree-form__field--valid', validLength);
 
-    this._sendRequestableEvent();
-  }.bind(this), false);
+      if (!options.required) {
+        return;
+      }
 
-  if (cardholderNameOptions.required) {
-    this.cardholderNameInput.addEventListener('blur', function () {
+      if (validLength) {
+        classlist.remove(fieldGroup, 'braintree-form__field-group--has-error');
+      }
+
+      this._sendRequestableEvent();
+    }.bind(this), false);
+
+    input.addEventListener('blur', function () {
       // the active element inside the blur event is the docuemnt.body
       // by taking it out of the event loop, we can detect the new
       // active element (hosted field or other card view element)
       setTimeout(function () {
-        if (isCardViewElement() && this.cardholderNameInput.value.length === 0) {
-          classlist.add(cardholderNameField, 'braintree-form__field-group--has-error');
+        if (isCardViewElement()) {
+          if (options.required && input.value.length === 0) {
+            this.showFieldError(field, this.strings['fieldEmptyFor' + capitalize(field)]);
+          } else if (this.rawFields[field].querySelector('input').value.length >= MAX_TEXT_INPUT_LENGTH) {
+            this.showFieldError(field, this.strings['fieldInvalidFor' + capitalize(field)]);
+          }
         }
       }.bind(this), 0);
     }.bind(this), false);
-  }
+  }.bind(this));
 };
 
 CardView.prototype._sendRequestableEvent = function () {
@@ -263,7 +296,7 @@ CardView.prototype._validateForm = function (showFieldErrors) {
     }
   }
 
-  if (!this._validateCardholderName()) {
+  if (!this._validateRawInputs(showFieldErrors)) {
     isValid = false;
   }
 
@@ -297,8 +330,8 @@ CardView.prototype.tokenize = function () {
     return Promise.reject(new DropinError(constants.errors.NO_PAYMENT_METHOD_ERROR));
   }
 
-  if (this.hasCardholderName) {
-    tokenizeOptions.cardholderName = this.cardholderNameInput.value;
+  if (this.rawFields.cardholderName) {
+    tokenizeOptions.cardholderName = this.rawFields.cardholderName.querySelector('input').value;
   }
 
   self._isTokenizing = true;
@@ -356,11 +389,15 @@ CardView.prototype.showFieldError = function (field, errorMessage) {
   fieldError = this.fieldErrors[field];
   fieldError.textContent = errorMessage;
 
-  this.hostedFieldsInstance.setAttribute({
-    field: field,
-    attribute: 'aria-invalid',
-    value: true
-  });
+  if (HOSTED_FIELDS_INPUTS.indexOf(field) > -1) {
+    this.hostedFieldsInstance.setAttribute({
+      field: field,
+      attribute: 'aria-invalid',
+      value: true
+    });
+  } else {
+    fieldGroup.querySelector('input').setAttribute('aria-invalid', true);
+  }
 };
 
 CardView.prototype.hideFieldError = function (field) {
@@ -386,12 +423,26 @@ CardView.prototype._generateFieldSelector = function (field) {
   return '#braintree--dropin__' + this.model.componentID + ' .braintree-form-' + field;
 };
 
-CardView.prototype._validateCardholderName = function () {
-  if (!this.hasCardholderName || !this.model.merchantConfiguration.card.cardholderName.required) {
-    return true;
-  }
+CardView.prototype._validateRawInputs = function (showFieldErrors) {
+  var isValid = true;
 
-  return this.cardholderNameInput.value.length > 0;
+  RAW_TEXT_INPUTS.forEach(function (input) {
+    if (!this.rawFields[input] || !this.model.merchantConfiguration.card[input].required) {
+      return;
+    }
+
+    console.log(this.rawFields[input]);
+
+    if (!isValidStringLength(this.rawFields[input].querySelector('input').value)) {
+      isValid = false;
+
+      if (showFieldErrors) {
+        // TODO show field error
+      }
+    }
+  }.bind(this));
+
+  return isValid;
 };
 
 CardView.prototype._onBlurEvent = function (event) {
@@ -488,7 +539,7 @@ CardView.prototype.onSelection = function () {
 
   if (this.hasCardholderName) {
     setTimeout(function () { // wait until input is visible
-      this.cardholderNameInput.focus();
+      this.fawFields.querySelector('input').cardholderName.focus();
     }.bind(this), 1);
   } else {
     this.hostedFieldsInstance.focus('number');

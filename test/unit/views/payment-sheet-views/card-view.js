@@ -17,7 +17,7 @@ function throwIfResolves() {
   throw new Error('should not resolve.');
 }
 
-describe('CardView', function () {
+describe.only('CardView', function () {
   beforeEach(function () {
     this.div = document.createElement('div');
 
@@ -658,7 +658,7 @@ describe('CardView', function () {
         _generateFieldSelector: CardView.prototype._generateFieldSelector,
         _generateHostedFieldsOptions: CardView.prototype._generateHostedFieldsOptions,
         _validateForm: this.sandbox.stub(),
-        _validateCardholderName: this.sandbox.stub().returns(true),
+        _validateRawInputs: this.sandbox.stub().returns(true),
         _sendRequestableEvent: CardView.prototype._sendRequestableEvent,
         getElementById: BaseView.prototype.getElementById,
         hideFieldError: CardView.prototype.hideFieldError,
@@ -676,6 +676,7 @@ describe('CardView', function () {
             };
           }
         },
+        rawFields: {},
         strings: strings,
         tokenize: CardView.prototype.tokenize,
         _hideUnsupportedCardIcons: function () {},
@@ -1656,9 +1657,9 @@ describe('CardView', function () {
         fieldErrors: {},
         model: this.model,
         _validateForm: CardView.prototype._validateForm,
-        _validateCardholderName: CardView.prototype._validateCardholderName,
+        _validateRawInputs: CardView.prototype._validateRawInputs,
         _sendRequestableEvent: CardView.prototype._sendRequestableEvent,
-        _setupCardholderName: this.sandbox.stub(),
+        _setupRawInputs: this.sandbox.stub(),
         client: {
           getConfiguration: fake.configuration
         },
@@ -1666,7 +1667,7 @@ describe('CardView', function () {
           authorization: fake.configuration().authorization,
           card: {}
         },
-        hasCardholderName: false,
+        rawFields: {},
         showFieldError: CardView.prototype.showFieldError,
         strings: strings
       };
@@ -1745,13 +1746,14 @@ describe('CardView', function () {
           }
         }
       });
-      this.context.hasCardholderName = true;
+      this.context.rawFields.cardholderName = {
+        querySelector: this.sandbox.stub().returns({value: ''})
+      };
       this.context.model.merchantConfiguration.card = {
         cardholderName: {
           required: true
         }
       };
-      this.context.cardholderNameInput = {value: ''};
 
       this.sandbox.stub(this.context.model, 'reportError');
 
@@ -1774,13 +1776,14 @@ describe('CardView', function () {
           }
         }
       });
-      this.context.hasCardholderName = true;
+      this.context.rawFields.cardholderName = {
+        querySelector: this.sandbox.stub().returns({value: ''})
+      };
       this.context.model.merchantConfiguration.card = {
         cardholderName: {
           required: false
         }
       };
-      this.context.cardholderNameInput = {value: ''};
 
       this.sandbox.stub(this.context.model, 'reportError');
 
@@ -1802,7 +1805,6 @@ describe('CardView', function () {
           }
         }
       });
-      this.context.hasCardholderName = false;
 
       this.sandbox.stub(this.context.model, 'reportError');
 
