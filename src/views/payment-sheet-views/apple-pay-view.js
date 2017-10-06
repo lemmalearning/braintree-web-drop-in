@@ -93,9 +93,11 @@ ApplePayView.prototype._showPaymentSheet = function () {
     self.applePayInstance.tokenize({
       token: event.payment.token
     }).then(function (payload) {
+      console.log(payload);
       session.completePayment(ApplePaySession.STATUS_SUCCESS); // eslint-disable-line no-undef
       self.model.addPaymentMethod(payload);
     }).catch(function (tokenizeErr) {
+      console.log(tokenizeErr);
       self._reportError(tokenizeErr);
       session.completePayment(ApplePaySession.STATUS_FAILURE); // eslint-disable-line no-undef
     });

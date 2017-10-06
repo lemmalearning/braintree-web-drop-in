@@ -11,7 +11,7 @@ var fs = require('fs');
 
 var mainHTML = fs.readFileSync(__dirname + '/../../../../src/html/main.html', 'utf8');
 
-describe('ApplePayView', function () {
+describe.only('ApplePayView', function () {
   beforeEach(function () {
     var model = new DropinModel(fake.modelOptions());
     var fakeClient = {
@@ -224,21 +224,35 @@ describe('ApplePayView', function () {
         });
 
         context('on tokenization success', function () {
-          it('adds payment method to model and completes payment on ApplePaySession with status success', function (done) {
-            var fakePayload = {foo: 'bar'};
-
-            this.fakeApplePayInstance.tokenize.resolves(fakePayload);
-            this.view.model.addPaymentMethod = function (payload) {
-              expect(this.fakeApplePaySession.completePayment).to.be.calledOnce;
-              expect(this.fakeApplePaySession.completePayment).to.be.calledWith(global.ApplePaySession.STATUS_SUCCESS);
-              expect(payload).to.equal(fakePayload);
+          it('completes payment on ApplePaySession with status success', function (done) {
+            this.fakeApplePaySession.completePayment = function () {
               done();
-            }.bind(this);
+            };
 
             this.buttonClickHandler();
             this.fakeApplePaySession.onpaymentauthorized({
               payment: {token: 'foo'}
             });
+          });
+
+          it('adds payment method to model', function (done) {
+            var fakePayload = {foo: 'bar'};
+            var fakeApplePayPaymentEvent = {
+              payment: {
+                token: 'foo',
+                shippingContact: {name: 'ApplePayPayment'}
+              }
+            };
+
+            this.fakeApplePayInstance.tokenize.resolves(fakePayload);
+            this.view.model.addPaymentMethod = function (payload) {
+              expect(payload.foo).to.equal('bar');
+              expect(payload.payment).to.equal(fakeApplePayPaymentEvent.payment);
+              done();
+            };
+
+            this.buttonClickHandler();
+            this.fakeApplePaySession.onpaymentauthorized(fakeApplePayPaymentEvent);
           });
         });
 
