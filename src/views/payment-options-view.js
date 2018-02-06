@@ -69,6 +69,13 @@ PaymentOptionsView.prototype._addPaymentOption = function (paymentOptionID) {
       html = html.replace(/@OPTION_TITLE/g, paymentSource);
       html = html.replace(/@CLASSNAME/g, '');
       break;
+    case paymentOptionIDs.venmo:
+      paymentSource = this.strings['Venmo'];
+      html = html.replace(/@ICON/g, 'logoVenmo');
+      html = html.replace(/@OPTION_LABEL/g, this._generateOptionLabel(paymentSource));
+      html = html.replace(/@OPTION_TITLE/g, paymentSource);
+      html = html.replace(/@CLASSNAME/g, '');
+      break;
     default:
       break;
   }

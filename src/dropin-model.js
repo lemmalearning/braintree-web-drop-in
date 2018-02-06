@@ -5,11 +5,13 @@ var EventEmitter = require('./lib/event-emitter');
 var constants = require('./constants');
 var paymentMethodTypes = constants.paymentMethodTypes;
 var paymentOptionIDs = constants.paymentOptionIDs;
+var btVenmo = require('braintree-web/venmo');
 var isGuestCheckout = require('./lib/is-guest-checkout');
 var isHTTPS = require('./lib/is-https');
 
 var VAULTED_PAYMENT_METHOD_TYPES_THAT_SHOULD_BE_HIDDEN = [
-  'ApplePayCard'
+  'ApplePayCard',
+  'VenmoAccount'
 ];
 
 function DropinModel(options) {
@@ -186,7 +188,7 @@ DropinModel.prototype._getSupportedPaymentMethods = function (paymentMethods) {
 
 function getSupportedPaymentOptions(options) {
   var result = [];
-  var paymentOptionPriority = options.merchantConfiguration.paymentOptionPriority || ['card', 'paypal', 'paypalCredit', 'applePay'];
+  var paymentOptionPriority = options.merchantConfiguration.paymentOptionPriority || ['card', 'paypal', 'paypalCredit', 'applePay', 'venmo'];
 
   if (!(paymentOptionPriority instanceof Array)) {
     throw new DropinError('paymentOptionPriority must be an array.');
@@ -210,7 +212,7 @@ function getSupportedPaymentOptions(options) {
 
 function isPaymentOptionEnabled(paymentOption, options) {
   var gatewayConfiguration = options.client.getConfiguration().gatewayConfiguration;
-  var applePayEnabled, applePayBrowserSupported;
+  var applePayEnabled, applePayBrowserSupported, venmoEnabled, venmoBrowserSupported;
 
   if (paymentOption === 'card') {
     return gatewayConfiguration.creditCards.supportedCardTypes.length > 0;
@@ -223,6 +225,14 @@ function isPaymentOptionEnabled(paymentOption, options) {
     applePayBrowserSupported = global.ApplePaySession && isHTTPS.isHTTPS() && global.ApplePaySession.canMakePayments();
 
     return applePayEnabled && applePayBrowserSupported;
+  } else if (paymentOption === 'venmo') {
+    venmoEnabled = gatewayConfiguration.venmo && Boolean(options.merchantConfiguration.venmo);
+    venmoBrowserSupported = true;
+    // venmoBrowserSupported = btVenmo.isBrowserSupported({
+    //   allowNewTab: false
+    // });
+
+    return venmoEnabled && venmoBrowserSupported;
   }
   throw new DropinError('paymentOptionPriority: Invalid payment option specified.');
 }
