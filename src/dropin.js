@@ -300,7 +300,7 @@ Dropin.prototype._initialize = function (callback) {
 
         if (this._model.appSwitchError) {
           this._mainView.setPrimaryView(this._model.appSwitchError.id);
-          this._model.reportError(this.model.appSwitchError.error);
+          this._model.reportError(this._model.appSwitchError.error);
         } else if (this._model.appSwitchPayload) {
           this._model.addPaymentMethod(this._model.appSwitchPayload);
         }

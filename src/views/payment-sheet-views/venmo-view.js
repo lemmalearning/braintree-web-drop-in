@@ -22,38 +22,36 @@ VenmoView.prototype.initialize = function () {
     client: this.client,
     allowNewBrowserTab: false
   }).then(function (venmoInstance) {
-    var button = self.getElementById('venmo-button');
-
     self.venmoInstance = venmoInstance;
 
-    return Promise.resolve().then(function () {
-      if (self.venmoInstance.hasTokenizationResult()) {
-        return self.venmoInstance.tokenize().then(function (payload) {
-          self.model.reportAppSwitchPayload(payload);
-        }).catch(function (err) {
-          self.model.reportAppSwitchError(paymentOptionIDs.venmo, err);
-        });
-      }
-    }).then(function () {
-      button.addEventListener('click', function (event) {
-        event.preventDefault();
-
-        return venmoInstance.tokenize().then(function (payload) {
-          self.model.addPaymentMethod(payload);
-        }).catch(function (tokenizeErr) {
-          if (tokenizeErr.code === 'VENMO_APP_CANCELED') {
-            // customer cancels the flow in the app
-            // we don't emit an error because the customer
-            // initiated that action
-            return;
-          }
-
-          self.model.reportError(tokenizeErr);
-        });
+    if (self.venmoInstance.hasTokenizationResult()) {
+      return self.venmoInstance.tokenize().then(function (payload) {
+        self.model.reportAppSwitchPayload(payload);
+      }).catch(function (err) {
+        self.model.reportAppSwitchError(paymentOptionIDs.venmo, err);
       });
+    }
+  }).then(function () {
+    var button = self.getElementById('venmo-button');
 
-      self.model.asyncDependencyReady();
+    button.addEventListener('click', function (event) {
+      event.preventDefault();
+
+      return self.venmoInstance.tokenize().then(function (payload) {
+        self.model.addPaymentMethod(payload);
+      }).catch(function (tokenizeErr) {
+        if (tokenizeErr.code === 'VENMO_APP_CANCELED') {
+          // customer cancels the flow in the app
+          // we don't emit an error because the customer
+          // initiated that action
+          return;
+        }
+
+        self.model.reportError(tokenizeErr);
+      });
     });
+
+    self.model.asyncDependencyReady();
   }).catch(function (err) {
     self.model.asyncDependencyFailed({
       view: self.ID,
