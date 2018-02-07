@@ -297,6 +297,14 @@ Dropin.prototype._initialize = function (callback) {
       if (this._model.dependencySuccessCount >= 1) {
         analytics.sendEvent(this._client, 'appeared');
         this._disableErroredPaymentMethods();
+
+        if (this._model.appSwitchError) {
+          this._mainView.setPrimaryView(this._model.appSwitchError.id);
+          this._model.reportError(this.model.appSwitchError.error);
+        } else if (this._model.appSwitchPayload) {
+          this._model.addPaymentMethod(this._model.appSwitchPayload);
+        }
+
         callback(null, dropinInstance);
       } else {
         this._model.cancelInitialization(new DropinError('All payment options failed to load.'));
