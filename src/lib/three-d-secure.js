@@ -3,7 +3,6 @@
 var fs = require('fs');
 var classlist = require('./classlist');
 var threeDSecure = require('braintree-web/three-d-secure');
-var Promise = require('./promise');
 
 function ThreeDSecure(client, merchantConfiguration, cardVerificationString) {
   this._client = client;

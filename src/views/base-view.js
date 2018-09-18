@@ -4,7 +4,6 @@ var assign = require('../lib/assign').assign;
 var classlist = require('../lib/classlist');
 var DropinError = require('../lib/dropin-error');
 var errors = require('../constants').errors;
-var Promise = require('../lib/promise');
 
 function BaseView(options) {
   options = options || {};

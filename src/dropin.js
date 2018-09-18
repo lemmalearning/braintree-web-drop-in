@@ -16,11 +16,9 @@ var paymentOptionIDs = constants.paymentOptionIDs;
 var translations = require('./translations').translations;
 var isUtf8 = require('./lib/is-utf-8');
 var uuid = require('./lib/uuid');
-var Promise = require('./lib/promise');
 var sanitizeHtml = require('./lib/sanitize-html');
 var DataCollector = require('./lib/data-collector');
 var ThreeDSecure = require('./lib/three-d-secure');
-var wrapPrototype = require('@braintree/wrap-promise').wrapPrototype;
 
 var mainHTML = fs.readFileSync(__dirname + '/html/main.html', 'utf8');
 var svgHTML = fs.readFileSync(__dirname + '/html/svgs.html', 'utf8');
@@ -256,14 +254,10 @@ Dropin.prototype._initialize = function (callback) {
 
   if (!container) {
     analytics.sendEvent(self._client, 'configuration-error');
-    callback(new DropinError('options.container is required.'));
-
-    return;
+    return Promise.reject(new DropinError('options.container is required.'));
   } else if (self._merchantConfiguration.container && self._merchantConfiguration.selector) {
     analytics.sendEvent(self._client, 'configuration-error');
-    callback(new DropinError('Must only have one options.selector or options.container.'));
-
-    return;
+    return Promise.reject(new DropinError('Must only have one options.selector or options.container.'));
   }
 
   if (typeof container === 'string') {
@@ -272,16 +266,12 @@ Dropin.prototype._initialize = function (callback) {
 
   if (!container || container.nodeType !== 1) {
     analytics.sendEvent(self._client, 'configuration-error');
-    callback(new DropinError('options.selector or options.container must reference a valid DOM node.'));
-
-    return;
+    return Promise.reject(new DropinError('options.selector or options.container must reference a valid DOM node.'));
   }
 
   if (container.innerHTML.trim()) {
     analytics.sendEvent(self._client, 'configuration-error');
-    callback(new DropinError('options.selector or options.container must reference an empty DOM node.'));
-
-    return;
+    return Promise.reject(new DropinError('options.selector or options.container must reference an empty DOM node.'));
   }
 
   // Backfill with `en`
@@ -318,42 +308,44 @@ Dropin.prototype._initialize = function (callback) {
     merchantConfiguration: self._merchantConfiguration
   });
 
-  self._model.initialize().then(function () {
-    self._model.on('cancelInitialization', function (err) {
-      self._dropinWrapper.innerHTML = '';
-      analytics.sendEvent(self._client, 'load-error');
-      callback(err);
-    });
+  return new Promise(function(res, rej) {
+    self._model.initialize().then(function () {
+      self._model.on('cancelInitialization', function (err) {
+        self._dropinWrapper.innerHTML = '';
+        analytics.sendEvent(self._client, 'load-error');
+        rej(err);
+      });
 
-    self._model.on('asyncDependenciesReady', function () {
-      if (self._model.dependencySuccessCount >= 1) {
-        analytics.sendEvent(self._client, 'appeared');
-        self._disableErroredPaymentMethods();
+      self._model.on('asyncDependenciesReady', function () {
+        if (self._model.dependencySuccessCount >= 1) {
+          analytics.sendEvent(self._client, 'appeared');
+          self._disableErroredPaymentMethods();
 
-        self._handleAppSwitch();
+          self._handleAppSwitch();
 
-        callback(null, self);
-      } else {
-        self._model.cancelInitialization(new DropinError('All payment options failed to load.'));
-      }
-    });
+          res(self);
+        } else {
+          self._model.cancelInitialization(new DropinError('All payment options failed to load.'));
+        }
+      });
 
-    self._model.on('paymentMethodRequestable', function (event) {
-      self._emit('paymentMethodRequestable', event);
-    });
+      self._model.on('paymentMethodRequestable', function (event) {
+        self._emit('paymentMethodRequestable', event);
+      });
 
-    self._model.on('noPaymentMethodRequestable', function () {
-      self._emit('noPaymentMethodRequestable');
-    });
+      self._model.on('noPaymentMethodRequestable', function () {
+        self._emit('noPaymentMethodRequestable');
+      });
 
-    self._model.on('paymentOptionSelected', function (event) {
-      self._emit('paymentOptionSelected', event);
-    });
+      self._model.on('paymentOptionSelected', function (event) {
+        self._emit('paymentOptionSelected', event);
+      });
 
-    return self._setUpDependenciesAndViews();
-  }).catch(function (err) {
-    self.teardown().then(function () {
-      callback(err);
+      return self._setUpDependenciesAndViews();
+    }).catch(function (err) {
+      self.teardown().then(function () {
+        rej(err);
+      });
     });
   });
 };
@@ -779,4 +771,4 @@ function formatPaymentMethodPayload(paymentMethod) {
   return formattedPaymentMethod;
 }
 
-module.exports = wrapPrototype(Dropin);
+module.exports = Dropin;

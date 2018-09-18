@@ -109,8 +109,6 @@ var createFromScriptTag = require('./lib/create-from-script-tag');
 var constants = require('./constants');
 var analytics = require('./lib/analytics');
 var DropinError = require('./lib/dropin-error');
-var Promise = require('./lib/promise');
-var wrapPromise = require('@braintree/wrap-promise');
 
 var VERSION = process.env.npm_package_version;
 
@@ -568,7 +566,7 @@ function setAnalyticsIntegration(clientInstance) {
 createFromScriptTag(create, typeof document !== 'undefined' && document.querySelector('script[data-braintree-dropin-authorization]'));
 
 module.exports = {
-  create: wrapPromise(create),
+  create: create,
   /**
    * @description The current version of Drop-in, i.e. `{@pkg version}`.
    * @type {string}

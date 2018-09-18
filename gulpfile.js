@@ -125,7 +125,7 @@ gulp.task('build:npm:package.json', function (done) {
   delete pkg.browserify;
   delete pkg.private;
   pkg.main = 'index.js';
-  pkg.browser = './dist/browser/dropin.js';
+  //pkg.browser = './dist/browser/dropin.js';
 
   mkdirp.sync(NPM_PATH);
 
@@ -158,7 +158,7 @@ gulp.task('build:npm', [
   'build:npm:statics',
   'build:npm:package.json',
   'build:npm:src',
-  'build:npm:browser'
+  //'build:npm:browser'
 ]);
 
 gulp.task('clean', function () {

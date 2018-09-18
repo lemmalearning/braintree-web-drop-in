@@ -2,7 +2,6 @@
 
 var constants = require('../constants');
 var assets = require('./assets');
-var Promise = require('./promise');
 
 function DataCollector(config) {
   this._config = config;

@@ -2,14 +2,12 @@
 
 var analytics = require('../../lib/analytics');
 var assign = require('../../lib/assign').assign;
-var browserDetection = require('../../lib/browser-detection');
 var BaseView = require('../base-view');
 var btPaypal = require('braintree-web/paypal-checkout');
 var DropinError = require('../../lib/dropin-error');
 var constants = require('../../constants');
 var assets = require('../../lib/assets');
 var translations = require('../../translations').fiveCharacterLocales;
-var Promise = require('../../lib/promise');
 
 var ASYNC_DEPENDENCY_TIMEOUT = 30000;
 var READ_ONLY_CONFIGURATION_OPTIONS = ['offerCredit', 'locale'];
@@ -108,12 +106,6 @@ BasePayPalView.isEnabled = function (options) {
   var gatewayConfiguration = options.client.getConfiguration().gatewayConfiguration;
 
   if (!gatewayConfiguration.paypalEnabled) {
-    return Promise.resolve(false);
-  }
-
-  if (browserDetection.isIe9() || browserDetection.isIe10()) {
-    analytics.sendEvent(options.client, options.viewID + '.checkout.js-browser-not-supported');
-
     return Promise.resolve(false);
   }
 

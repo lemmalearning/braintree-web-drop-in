@@ -1,6 +1,5 @@
 'use strict';
 
-var Promise = require('./promise');
 
 function loadScript(options) {
   var script = document.createElement('script');
