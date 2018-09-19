@@ -29,3 +29,6 @@ function onTransitionEnd(element, propertyName, callback) {
   element.addEventListener('transitionend', transitionEventListener);
 }
 
+module.exports = {
+  onTransitionEnd: onTransitionEnd
+};

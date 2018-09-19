@@ -25,6 +25,7 @@ var finalhandler = require('finalhandler');
 var gutil = require('gulp-util');
 var mkdirp = require('mkdirp');
 var autoprefixer = require('gulp-autoprefixer');
+var collapse = require('bundle-collapser/plugin');
 
 var VERSION = require('./package.json').version;
 
@@ -71,7 +72,7 @@ var config = {
 gulp.task('build:js', ['build:js:unmin', 'build:js:min']);
 
 gulp.task('build:js:unmin', function () {
-  return browserify(config.src.js.main, {standalone: 'braintree.dropin'})
+  return browserify(config.src.js.main, {standalone: 'braintree.dropin', plugin: [collapse]})
     .bundle()
     .pipe(source(config.src.js.output))
     .pipe(replace('@DOT_MIN', ''))
@@ -80,7 +81,7 @@ gulp.task('build:js:unmin', function () {
 });
 
 gulp.task('build:js:min', function () {
-  return browserify(config.src.js.main, {standalone: 'braintree.dropin'})
+  return browserify(config.src.js.main, {standalone: 'braintree.dropin', plugin: [collapse]})
     .bundle()
     .pipe(source(config.src.js.output))
     .pipe(replace('@DOT_MIN', '.min'))

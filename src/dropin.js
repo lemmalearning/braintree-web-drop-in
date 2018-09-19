@@ -245,7 +245,7 @@ Dropin.prototype = Object.create(EventEmitter.prototype, {
   constructor: Dropin
 });
 
-Dropin.prototype._initialize = function (callback) {
+Dropin.prototype._initialize = function () {
   var localizedStrings, localizedHTML;
   var self = this;
   var container = self._merchantConfiguration.container || self._merchantConfiguration.selector;

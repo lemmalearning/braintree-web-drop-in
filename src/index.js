@@ -531,20 +531,10 @@ function create(options) {
       analytics.sendEvent(clientInstance, 'started.client-token');
     }
 
-    return new Promise(function (resolve, reject) {
-      new Dropin({
-        merchantConfiguration: options,
-        client: clientInstance
-      })._initialize(function (err, instance) {
-        if (err) {
-          reject(err);
-
-          return;
-        }
-
-        resolve(instance);
-      });
-    });
+    return new Dropin({
+      merchantConfiguration: options,
+      client: clientInstance
+    })._initialize()
   });
 }
 
